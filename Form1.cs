@@ -65,11 +65,11 @@ namespace EWSOAuthAppPermissions
                 }
                 catch (MsalException ex)
                 {
-                    WriteToResults($"Error acquiring access token: {ex.ToString()}");
+                    WriteToResults($"Error acquiring access token: {ex}");
                 }
                 catch (Exception ex)
                 {
-                    WriteToResults($"Error: {ex.ToString()}");
+                    WriteToResults($"Error: {ex}");
                 }
 
 
