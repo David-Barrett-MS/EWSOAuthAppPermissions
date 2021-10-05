@@ -130,7 +130,7 @@ namespace EWSOAuthAppPermissions
             exchangeService.HttpHeaders.Add("X-AnchorMailbox", xAnchor);
 
 
-            // Per the Exchange 2003 docs, we need to do a further AutoDiscover request to get X-PublicFolderMailbox
+            // Per the Exchange 2013 docs, we need to do a further AutoDiscover request to get X-PublicFolderMailbox
             // For Office 365, this will return an email address not found.
             // It doesn't seem to be required to set this header for Office 365, access to the public folder succeeds without it.
 
