@@ -45,6 +45,9 @@ namespace EWSOAuthAppPermissions
             if (_traceStream == null)
                 return;
 
+            if (!traceMessage.StartsWith("<Trace"))
+                traceMessage = $"<Trace Tag=\"{traceType}\" Time=\"{System.DateTime.UtcNow}\" >{traceMessage}</Trace>";
+
             lock (this)
             {
                 try
