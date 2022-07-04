@@ -125,7 +125,7 @@ namespace EWSOAuthAppPermissions
 
         private void SetPublicFolderHeirarchyHeaders(ExchangeService exchangeService, string mailbox)
         {
-            // We need to head specific headers when accessing public folders using EWS
+            // We need to set specific headers when accessing public folders using EWS
             // https://docs.microsoft.com/en-us/exchange/client-developer/exchange-web-services/how-to-route-public-folder-hierarchy-requests
             // For public folders, we first need to get X-AnchorMailbox
 
@@ -151,11 +151,14 @@ namespace EWSOAuthAppPermissions
 
             // Retrieve the autodiscover information for X-PublicFolderInformation
 
-            // For Office 365, the POX AutoDiscover endpoint will return an email address not found
-            // error if we use OAuth, so for this request we fall back to basic.
-            String basicAuth = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{textBoxMailboxSMTPAddress.Text}:{textBoxAutoDiscoverPW.Text}"));
-            _httpClient.DefaultRequestHeaders.Remove("Authorization");
-            _httpClient.DefaultRequestHeaders.Add("Authorization", "Basic " + basicAuth);
+            if (checkBoxPOXBasicAuth.Checked)
+            {
+                // Use basic auth for the POX request
+                // We work out the auth header and replace it
+                String basicAuth = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{textBoxMailboxSMTPAddress.Text}:{textBoxAutoDiscoverPW.Text}"));
+                _httpClient.DefaultRequestHeaders.Remove("Authorization");
+                _httpClient.DefaultRequestHeaders.Add("Authorization", "Basic " + basicAuth);
+            }
 
             // As we are using the POX endpoint, we send the Autodiscover request using HttpClient
             string autodiscoverXml = System.IO.File.ReadAllText("Autodiscover.xml").Replace("<!--EMAILADDRESS-->", _pfXAnchorMailbox);

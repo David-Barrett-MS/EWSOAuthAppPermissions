@@ -42,6 +42,7 @@ namespace EWSOAuthAppPermissions
             this.buttonClose = new System.Windows.Forms.Button();
             this.buttonFindFolders = new System.Windows.Forms.Button();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.checkBoxPOXBasicAuth = new System.Windows.Forms.CheckBox();
             this.textBoxAutoDiscoverPW = new System.Windows.Forms.TextBox();
             this.checkBoxGetPublicFolders = new System.Windows.Forms.CheckBox();
             this.label4 = new System.Windows.Forms.Label();
@@ -118,9 +119,9 @@ namespace EWSOAuthAppPermissions
             // groupBox2
             // 
             this.groupBox2.Controls.Add(this.textBoxResults);
-            this.groupBox2.Location = new System.Drawing.Point(12, 189);
+            this.groupBox2.Location = new System.Drawing.Point(12, 215);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(327, 111);
+            this.groupBox2.Size = new System.Drawing.Size(327, 125);
             this.groupBox2.TabIndex = 5;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Results";
@@ -133,12 +134,12 @@ namespace EWSOAuthAppPermissions
             this.textBoxResults.Name = "textBoxResults";
             this.textBoxResults.ReadOnly = true;
             this.textBoxResults.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.textBoxResults.Size = new System.Drawing.Size(321, 92);
+            this.textBoxResults.Size = new System.Drawing.Size(321, 106);
             this.textBoxResults.TabIndex = 0;
             // 
             // buttonClose
             // 
-            this.buttonClose.Location = new System.Drawing.Point(264, 306);
+            this.buttonClose.Location = new System.Drawing.Point(264, 346);
             this.buttonClose.Name = "buttonClose";
             this.buttonClose.Size = new System.Drawing.Size(75, 23);
             this.buttonClose.TabIndex = 7;
@@ -148,7 +149,7 @@ namespace EWSOAuthAppPermissions
             // 
             // buttonFindFolders
             // 
-            this.buttonFindFolders.Location = new System.Drawing.Point(12, 306);
+            this.buttonFindFolders.Location = new System.Drawing.Point(12, 347);
             this.buttonFindFolders.Name = "buttonFindFolders";
             this.buttonFindFolders.Size = new System.Drawing.Size(75, 23);
             this.buttonFindFolders.TabIndex = 6;
@@ -158,23 +159,37 @@ namespace EWSOAuthAppPermissions
             // 
             // groupBox3
             // 
+            this.groupBox3.Controls.Add(this.checkBoxPOXBasicAuth);
             this.groupBox3.Controls.Add(this.textBoxAutoDiscoverPW);
             this.groupBox3.Controls.Add(this.checkBoxGetPublicFolders);
             this.groupBox3.Controls.Add(this.label4);
             this.groupBox3.Controls.Add(this.textBoxMailboxSMTPAddress);
             this.groupBox3.Location = new System.Drawing.Point(12, 117);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(327, 66);
+            this.groupBox3.Size = new System.Drawing.Size(327, 92);
             this.groupBox3.TabIndex = 8;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Mailbox";
             // 
+            // checkBoxPOXBasicAuth
+            // 
+            this.checkBoxPOXBasicAuth.AutoSize = true;
+            this.checkBoxPOXBasicAuth.Location = new System.Drawing.Point(51, 66);
+            this.checkBoxPOXBasicAuth.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.checkBoxPOXBasicAuth.Name = "checkBoxPOXBasicAuth";
+            this.checkBoxPOXBasicAuth.Size = new System.Drawing.Size(137, 17);
+            this.checkBoxPOXBasicAuth.TabIndex = 10;
+            this.checkBoxPOXBasicAuth.Text = "Use basic auth for POX";
+            this.toolTip1.SetToolTip(this.checkBoxPOXBasicAuth, "If selected, POX is used for AutoDiscover to determine X-PublicFolderMailbox (oth" +
+        "erwise basic auth is used)");
+            this.checkBoxPOXBasicAuth.UseVisualStyleBackColor = true;
+            // 
             // textBoxAutoDiscoverPW
             // 
-            this.textBoxAutoDiscoverPW.Location = new System.Drawing.Point(222, 43);
+            this.textBoxAutoDiscoverPW.Location = new System.Drawing.Point(192, 63);
             this.textBoxAutoDiscoverPW.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.textBoxAutoDiscoverPW.Name = "textBoxAutoDiscoverPW";
-            this.textBoxAutoDiscoverPW.Size = new System.Drawing.Size(99, 20);
+            this.textBoxAutoDiscoverPW.Size = new System.Drawing.Size(129, 20);
             this.textBoxAutoDiscoverPW.TabIndex = 9;
             this.toolTip1.SetToolTip(this.textBoxAutoDiscoverPW, "Public folder access requires information that can only be\r\nobtained via AutoDisc" +
         "over using basic auth.  Enter the\r\npassword for the mailbox here to ensure publi" +
@@ -186,7 +201,7 @@ namespace EWSOAuthAppPermissions
             this.checkBoxGetPublicFolders.AutoSize = true;
             this.checkBoxGetPublicFolders.Checked = true;
             this.checkBoxGetPublicFolders.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBoxGetPublicFolders.Location = new System.Drawing.Point(86, 45);
+            this.checkBoxGetPublicFolders.Location = new System.Drawing.Point(51, 45);
             this.checkBoxGetPublicFolders.Name = "checkBoxGetPublicFolders";
             this.checkBoxGetPublicFolders.Size = new System.Drawing.Size(131, 17);
             this.checkBoxGetPublicFolders.TabIndex = 8;
@@ -217,7 +232,7 @@ namespace EWSOAuthAppPermissions
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(352, 338);
+            this.ClientSize = new System.Drawing.Size(349, 379);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.groupBox2);
@@ -258,6 +273,7 @@ namespace EWSOAuthAppPermissions
         private System.Windows.Forms.CheckBox checkBoxGetPublicFolders;
         private System.Windows.Forms.TextBox textBoxAutoDiscoverPW;
         private System.Windows.Forms.ToolTip toolTip1;
+        private System.Windows.Forms.CheckBox checkBoxPOXBasicAuth;
     }
 }
 
