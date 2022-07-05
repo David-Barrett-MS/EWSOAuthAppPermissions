@@ -175,7 +175,7 @@ namespace EWSOAuthAppPermissions
             // 
             this.checkBoxPOXBasicAuth.AutoSize = true;
             this.checkBoxPOXBasicAuth.Location = new System.Drawing.Point(51, 66);
-            this.checkBoxPOXBasicAuth.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.checkBoxPOXBasicAuth.Margin = new System.Windows.Forms.Padding(2);
             this.checkBoxPOXBasicAuth.Name = "checkBoxPOXBasicAuth";
             this.checkBoxPOXBasicAuth.Size = new System.Drawing.Size(137, 17);
             this.checkBoxPOXBasicAuth.TabIndex = 10;
@@ -187,7 +187,7 @@ namespace EWSOAuthAppPermissions
             // textBoxAutoDiscoverPW
             // 
             this.textBoxAutoDiscoverPW.Location = new System.Drawing.Point(192, 63);
-            this.textBoxAutoDiscoverPW.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.textBoxAutoDiscoverPW.Margin = new System.Windows.Forms.Padding(2);
             this.textBoxAutoDiscoverPW.Name = "textBoxAutoDiscoverPW";
             this.textBoxAutoDiscoverPW.Size = new System.Drawing.Size(129, 20);
             this.textBoxAutoDiscoverPW.TabIndex = 9;
@@ -239,7 +239,7 @@ namespace EWSOAuthAppPermissions
             this.Controls.Add(this.buttonClose);
             this.Controls.Add(this.buttonFindFolders);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "Form1";

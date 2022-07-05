@@ -1,10 +1,22 @@
-﻿using System;
-using System.Xml;
+﻿/*
+ * By David Barrett, Microsoft Ltd. 2022. Use at your own risk.  No warranties are given.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ * */
+
+using Microsoft.Exchange.WebServices.Autodiscover;
+using Microsoft.Exchange.WebServices.Data;
+using Microsoft.Identity.Client;
+using System;
 using System.Net.Http;
 using System.Windows.Forms;
-using Microsoft.Exchange.WebServices.Data;
-using Microsoft.Exchange.WebServices.Autodiscover;
-using Microsoft.Identity.Client;
+using System.Xml;
 
 namespace EWSOAuthAppPermissions
 {
@@ -13,8 +25,9 @@ namespace EWSOAuthAppPermissions
         private HttpClient _httpClient = new HttpClient();
         private string _oAuthHeader = "";
         private string _pfXAnchorMailbox = "";
+        private string _internalRpcClientServer = "";
         private string _pfXAnchorMailboxContent = "";
-        private string _pfXPublicFolderInformation = "";
+        private string _pfXPublicFolderMailbox = "";
         private ExtendedPropertyDefinition PR_REPLICA_LIST = new ExtendedPropertyDefinition(0x6698, MapiPropertyType.Binary);
 
 
@@ -64,8 +77,10 @@ namespace EWSOAuthAppPermissions
                     ewsClient.TraceFlags = TraceFlags.All;
                     ewsClient.TraceEnabled = true;
 
-                    // Add authorization header to HttpClient
+                    // Add OAuth authorization header to HttpClient
                     _oAuthHeader = $"Bearer {result.AccessToken}";
+                    if (_httpClient.DefaultRequestHeaders.Contains("Authorization"))
+                        _httpClient.DefaultRequestHeaders.Remove("Authorization");
                     _httpClient.DefaultRequestHeaders.Add("Authorization", _oAuthHeader);
 
                     //Impersonate the mailbox you'd like to access.
@@ -123,6 +138,17 @@ namespace EWSOAuthAppPermissions
             return autodiscover;
         }
 
+        private void ApplyBasicAuthHeader()
+        {
+            if (checkBoxPOXBasicAuth.Checked)
+            {
+                // We work out the basic auth header and then set it (replacing the OAuth header)
+                String basicAuth = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{textBoxMailboxSMTPAddress.Text}:{textBoxAutoDiscoverPW.Text}"));
+                _httpClient.DefaultRequestHeaders.Remove("Authorization");
+                _httpClient.DefaultRequestHeaders.Add("Authorization", "Basic " + basicAuth);
+            }
+        }
+
         private void SetPublicFolderHeirarchyHeaders(ExchangeService exchangeService, string mailbox)
         {
             // We need to set specific headers when accessing public folders using EWS
@@ -136,7 +162,8 @@ namespace EWSOAuthAppPermissions
             GetUserSettingsResponse userSettings = null;
             try
             {
-                userSettings = autodiscover.GetUserSettings(mailbox, UserSettingName.PublicFolderInformation);
+                UserSettingName[] settings = new UserSettingName[] { UserSettingName.PublicFolderInformation, UserSettingName.InternalRpcClientServer};
+                userSettings = autodiscover.GetUserSettings(mailbox, settings);
             }
             catch (Exception ex)
             {
@@ -144,21 +171,36 @@ namespace EWSOAuthAppPermissions
                 return;
             }
 
-            // We have X-AnchorMailbox
+            // Set X-AnchorMailbox
             _pfXAnchorMailbox = userSettings.Settings[UserSettingName.PublicFolderInformation].ToString();
             WriteToResults($"Set X-AnchorMailbox to {_pfXAnchorMailbox}");
             exchangeService.HttpHeaders.Add("X-AnchorMailbox", _pfXAnchorMailbox);
 
-            // Retrieve the autodiscover information for X-PublicFolderInformation
-
-            if (checkBoxPOXBasicAuth.Checked)
+            // Retrieve the autodiscover information for X-PublicFolderMailbox
+            // The docs state that this should be done by sending a POX request, but we can obtain the same information
+            // from a UserSettings request for InternalRpcClientServer against the anchor mailbox.
+            try
             {
-                // Use basic auth for the POX request
-                // We work out the auth header and replace it
-                String basicAuth = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{textBoxMailboxSMTPAddress.Text}:{textBoxAutoDiscoverPW.Text}"));
-                _httpClient.DefaultRequestHeaders.Remove("Authorization");
-                _httpClient.DefaultRequestHeaders.Add("Authorization", "Basic " + basicAuth);
+                userSettings = autodiscover.GetUserSettings(_pfXAnchorMailbox, UserSettingName.InternalRpcClientServer);
+                _internalRpcClientServer = userSettings.Settings[UserSettingName.InternalRpcClientServer].ToString();
+                WriteToResults($"InternalRpcClientServer: {_internalRpcClientServer}");
+
+                // InternalRpcClientServer is the value we need for X-PublicFolderMailbox
+                _pfXPublicFolderMailbox = _internalRpcClientServer;
+                exchangeService.HttpHeaders.Add("X-PublicFolderMailbox", _pfXPublicFolderMailbox);
+                WriteToResults($"Set X-PublicFolderMailbox to {_pfXPublicFolderMailbox}");
+                return;
             }
+            catch (Exception ex)
+            {
+                WriteToResults($"Error retrieving InternalRpcClientServer: {ex}");
+            }
+
+            // If we get here, we failed to get the user settings.  Likely this is a mailbox issue, but we'll try POX.
+
+            // Retrieve the autodiscover information for X-PublicFolderMailbox using POX
+
+            ApplyBasicAuthHeader();
 
             // As we are using the POX endpoint, we send the Autodiscover request using HttpClient
             string autodiscoverXml = System.IO.File.ReadAllText("Autodiscover.xml").Replace("<!--EMAILADDRESS-->", _pfXAnchorMailbox);
@@ -167,7 +209,7 @@ namespace EWSOAuthAppPermissions
                 new StringContent(autodiscoverXml, System.Text.Encoding.UTF8, "text/xml")).Result;
             if (!response.IsSuccessStatusCode)
             {
-                WriteToResults("Failed to get X-PublicFolderInformation");
+                WriteToResults("Failed to get X-PublicFolderMailbox");
                 return;
             }
 
@@ -203,9 +245,9 @@ namespace EWSOAuthAppPermissions
                                     if (isEXCH && node.Name == "Server")
                                     {
                                         //  We want the Server entry from this node
-                                        _pfXPublicFolderInformation = node.InnerText;
-                                        exchangeService.HttpHeaders.Add("X-PublicFolderInformation", _pfXPublicFolderInformation);
-                                        WriteToResults($"Set X-PublicFolderInformation to {_pfXPublicFolderInformation}");
+                                        _pfXPublicFolderMailbox = node.InnerText;
+                                        exchangeService.HttpHeaders.Add("X-PublicFolderMailbox", _pfXPublicFolderMailbox);
+                                        WriteToResults($"Set X-PublicFolderMailbox to {_pfXPublicFolderMailbox}");
                                         return;
                                     }
                                 }
@@ -224,7 +266,7 @@ namespace EWSOAuthAppPermissions
             // X- headers for content requests must be set per:
             // https://docs.microsoft.com/en-us/exchange/client-developer/exchange-web-services/how-to-route-public-folder-content-requests
 
-            if (String.IsNullOrEmpty(_pfXAnchorMailbox) || String.IsNullOrEmpty(_pfXPublicFolderInformation))
+            if (String.IsNullOrEmpty(_pfXAnchorMailbox) )
                 return;
 
             // First we need the replica Guid (in string format).  We requested this in the original FindFolder call.
@@ -245,9 +287,13 @@ namespace EWSOAuthAppPermissions
                 return;
             string domain = textBoxMailboxSMTPAddress.Text.Substring(domainStart);
             string autodiscoverAddress = $"{replicaGuid}{domain}";
+            WriteToResults($"Autodiscover for {autodiscoverAddress} to access folder {folder.DisplayName}");
 
             // We send a POX autodiscover request to get X-AnchorMailbox (using whatever auth method has
             // already been configured on the HttpClient)
+
+            ApplyBasicAuthHeader();
+
             string autodiscoverXml = System.IO.File.ReadAllText("Autodiscover.xml").Replace("<!--EMAILADDRESS-->", autodiscoverAddress);
             folder.Service.TraceListener?.Trace("AutodiscoverRequest", autodiscoverXml);
             HttpResponseMessage response = _httpClient.PostAsync("https://autodiscover-s.outlook.com/autodiscover/autodiscover.xml",
@@ -277,9 +323,9 @@ namespace EWSOAuthAppPermissions
             folder.Service.HttpHeaders.Add("X-AnchorMailbox", _pfXAnchorMailboxContent);
             WriteToResults($"Set X-AnchorMailbox to {_pfXAnchorMailboxContent}");
 
-            folder.Service.HttpHeaders.Remove("X-PublicFolderInformation");
-            folder.Service.HttpHeaders.Add("X-PublicFolderInformation", _pfXAnchorMailboxContent);
-            WriteToResults($"Set X-PublicFolderInformation to {_pfXAnchorMailboxContent}");
+            folder.Service.HttpHeaders.Remove("X-PublicFolderMailbox");
+            folder.Service.HttpHeaders.Add("X-PublicFolderMailbox", _pfXAnchorMailboxContent);
+            WriteToResults($"Set X-PublicFolderMailbox to {_pfXAnchorMailboxContent}");
         }
 
         private void ReadItemsFromFolder(Folder folder)
