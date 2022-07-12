@@ -269,6 +269,8 @@ namespace EWSOAuthAppPermissions
             if (String.IsNullOrEmpty(_pfXAnchorMailbox) )
                 return;
 
+            _pfXAnchorMailboxContent = "";
+
             // First we need the replica Guid (in string format).  We requested this in the original FindFolder call.
             string replicaGuid = "";
             foreach (ExtendedProperty prop in folder.ExtendedProperties)
@@ -289,33 +291,50 @@ namespace EWSOAuthAppPermissions
             string autodiscoverAddress = $"{replicaGuid}{domain}";
             WriteToResults($"Autodiscover for {autodiscoverAddress} to access folder {folder.DisplayName}");
 
-            // We send a POX autodiscover request to get X-AnchorMailbox (using whatever auth method has
-            // already been configured on the HttpClient)
-
-            ApplyBasicAuthHeader();
-
-            string autodiscoverXml = System.IO.File.ReadAllText("Autodiscover.xml").Replace("<!--EMAILADDRESS-->", autodiscoverAddress);
-            folder.Service.TraceListener?.Trace("AutodiscoverRequest", autodiscoverXml);
-            HttpResponseMessage response = _httpClient.PostAsync("https://autodiscover-s.outlook.com/autodiscover/autodiscover.xml",
-                new StringContent(autodiscoverXml, System.Text.Encoding.UTF8, "text/xml")).Result;
-            if (!response.IsSuccessStatusCode)
+            // Retrieve the autodiscover information for X-AnchorMailbox
+            AutodiscoverService autodiscover = GetAutodiscoverService(folder.Service);
+            GetUserSettingsResponse userSettings = null;
+            try
             {
-                WriteToResults("Failed to get X-AnchorMailbox");
+                UserSettingName[] settings = new UserSettingName[] { UserSettingName.PublicFolderInformation, UserSettingName.AutoDiscoverSMTPAddress };
+                userSettings = autodiscover.GetUserSettings(autodiscoverAddress, settings);
+            }
+            catch (Exception ex)
+            {
+                WriteToResults($"Error: {ex}");
                 return;
             }
-            string autodiscoverResponse = response.Content.ReadAsStringAsync().Result;
-            folder.Service.TraceListener?.Trace("AutodiscoverResponse", autodiscoverResponse);
+            _pfXAnchorMailboxContent = userSettings.Settings[UserSettingName.AutoDiscoverSMTPAddress].ToString();
 
-            // AutoDiscoverSMTPAddress is the value we need for both headers
-            XmlDocument autodiscoverXmlResponse = new XmlDocument();
-            autodiscoverXmlResponse.LoadXml(autodiscoverResponse);
-            XmlNodeList addressNodes = autodiscoverXmlResponse.GetElementsByTagName("AutoDiscoverSMTPAddress");
-            if (addressNodes.Count == 1)
-                _pfXAnchorMailboxContent = addressNodes[0].InnerText;
-            else
+            if (String.IsNullOrEmpty(_pfXAnchorMailboxContent))
             {
-                WriteToResults("Failed to get X-AnchorMailbox");
-                return;
+                // GetUserSettings failed for some reason, we fall back to POX (which will only work with basic auth)
+
+                ApplyBasicAuthHeader();
+
+                string autodiscoverXml = System.IO.File.ReadAllText("Autodiscover.xml").Replace("<!--EMAILADDRESS-->", autodiscoverAddress);
+                folder.Service.TraceListener?.Trace("AutodiscoverRequest", autodiscoverXml);
+                HttpResponseMessage response = _httpClient.PostAsync("https://autodiscover-s.outlook.com/autodiscover/autodiscover.xml",
+                    new StringContent(autodiscoverXml, System.Text.Encoding.UTF8, "text/xml")).Result;
+                if (!response.IsSuccessStatusCode)
+                {
+                    WriteToResults("Failed to get X-AnchorMailbox");
+                    return;
+                }
+                string autodiscoverResponse = response.Content.ReadAsStringAsync().Result;
+                folder.Service.TraceListener?.Trace("AutodiscoverResponse", autodiscoverResponse);
+
+                // AutoDiscoverSMTPAddress is the value we need for both headers
+                XmlDocument autodiscoverXmlResponse = new XmlDocument();
+                autodiscoverXmlResponse.LoadXml(autodiscoverResponse);
+                XmlNodeList addressNodes = autodiscoverXmlResponse.GetElementsByTagName("AutoDiscoverSMTPAddress");
+                if (addressNodes.Count == 1)
+                    _pfXAnchorMailboxContent = addressNodes[0].InnerText;
+                else
+                {
+                    WriteToResults("Failed to get X-AnchorMailbox");
+                    return;
+                }
             }
 
             // Set the headers on the service request

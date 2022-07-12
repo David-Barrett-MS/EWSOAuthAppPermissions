@@ -83,6 +83,7 @@ namespace EWSOAuthAppPermissions
             this.textBoxClientSecret.Name = "textBoxClientSecret";
             this.textBoxClientSecret.Size = new System.Drawing.Size(235, 20);
             this.textBoxClientSecret.TabIndex = 4;
+            this.textBoxClientSecret.Text = "PSQ8Q~3yNjJIAJw5OSsFQbB8UaWS5HDGPsdUIcJ9";
             // 
             // label2
             // 
@@ -108,6 +109,7 @@ namespace EWSOAuthAppPermissions
             this.textBoxTenantId.Name = "textBoxTenantId";
             this.textBoxTenantId.Size = new System.Drawing.Size(235, 20);
             this.textBoxTenantId.TabIndex = 1;
+            this.textBoxTenantId.Text = "fc69f6a8-90cd-4047-977d-0c768925b8ec";
             // 
             // textBoxAppId
             // 
@@ -115,6 +117,7 @@ namespace EWSOAuthAppPermissions
             this.textBoxAppId.Name = "textBoxAppId";
             this.textBoxAppId.Size = new System.Drawing.Size(235, 20);
             this.textBoxAppId.TabIndex = 0;
+            this.textBoxAppId.Text = "8e4e9630-3722-4a57-9b75-412e05410ef7";
             // 
             // groupBox2
             // 
@@ -226,6 +229,7 @@ namespace EWSOAuthAppPermissions
             this.textBoxMailboxSMTPAddress.Name = "textBoxMailboxSMTPAddress";
             this.textBoxMailboxSMTPAddress.Size = new System.Drawing.Size(235, 20);
             this.textBoxMailboxSMTPAddress.TabIndex = 6;
+            this.textBoxMailboxSMTPAddress.Text = "dave@demonmaths.co.uk";
             this.toolTip1.SetToolTip(this.textBoxMailboxSMTPAddress, "The SMTP address of the mailbox being impersonated/accessed.");
             // 
             // Form1
