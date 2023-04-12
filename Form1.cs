@@ -29,7 +29,7 @@ namespace EWSOAuthAppPermissions
         private string _pfXAnchorMailboxContent = "";
         private string _pfXPublicFolderMailbox = "";
         private ExtendedPropertyDefinition PR_REPLICA_LIST = new ExtendedPropertyDefinition(0x6698, MapiPropertyType.Binary);
-
+        private DateTime _throttledBackoffEnd = DateTime.MinValue;
 
         public Form1()
         {
@@ -96,7 +96,8 @@ namespace EWSOAuthAppPermissions
                         foreach (var folder in folders)
                         {
                             WriteToResults($"Folder: {folder.DisplayName}");
-                            ReadItemsFromFolder(folder);
+                            if (checkBoxGetItems.Checked)
+                                ReadItemsFromFolder(folder);
                         }
                     }
                     else
@@ -173,8 +174,11 @@ namespace EWSOAuthAppPermissions
 
             // Set X-AnchorMailbox
             _pfXAnchorMailbox = userSettings.Settings[UserSettingName.PublicFolderInformation].ToString();
-            WriteToResults($"Set X-AnchorMailbox to {_pfXAnchorMailbox}");
-            exchangeService.HttpHeaders.Add("X-AnchorMailbox", _pfXAnchorMailbox);
+            if (checkBoxHeaders.Checked)
+            {
+                WriteToResults($"Set X-AnchorMailbox to {_pfXAnchorMailbox}");
+                exchangeService.HttpHeaders.Add("X-AnchorMailbox", _pfXAnchorMailbox);
+            }
 
             // Retrieve the autodiscover information for X-PublicFolderMailbox
             // The docs state that this should be done by sending a POX request, but we can obtain the same information
@@ -187,8 +191,11 @@ namespace EWSOAuthAppPermissions
 
                 // InternalRpcClientServer is the value we need for X-PublicFolderMailbox
                 _pfXPublicFolderMailbox = _internalRpcClientServer;
-                exchangeService.HttpHeaders.Add("X-PublicFolderMailbox", _pfXPublicFolderMailbox);
-                WriteToResults($"Set X-PublicFolderMailbox to {_pfXPublicFolderMailbox}");
+                if (checkBoxHeaders.Checked)
+                {
+                    exchangeService.HttpHeaders.Add("X-PublicFolderMailbox", _pfXPublicFolderMailbox);
+                    WriteToResults($"Set X-PublicFolderMailbox to {_pfXPublicFolderMailbox}");
+                }
                 return;
             }
             catch (Exception ex)
@@ -246,8 +253,11 @@ namespace EWSOAuthAppPermissions
                                     {
                                         //  We want the Server entry from this node
                                         _pfXPublicFolderMailbox = node.InnerText;
-                                        exchangeService.HttpHeaders.Add("X-PublicFolderMailbox", _pfXPublicFolderMailbox);
-                                        WriteToResults($"Set X-PublicFolderMailbox to {_pfXPublicFolderMailbox}");
+                                        if (checkBoxHeaders.Checked)
+                                        {
+                                            exchangeService.HttpHeaders.Add("X-PublicFolderMailbox", _pfXPublicFolderMailbox);
+                                            WriteToResults($"Set X-PublicFolderMailbox to {_pfXPublicFolderMailbox}");
+                                        }
                                         return;
                                     }
                                 }
@@ -338,24 +348,64 @@ namespace EWSOAuthAppPermissions
             }
 
             // Set the headers on the service request
-            folder.Service.HttpHeaders.Remove("X-AnchorMailbox");
-            folder.Service.HttpHeaders.Add("X-AnchorMailbox", _pfXAnchorMailboxContent);
-            WriteToResults($"Set X-AnchorMailbox to {_pfXAnchorMailboxContent}");
+            if (checkBoxHeaders.Checked)
+            {
+                folder.Service.HttpHeaders.Remove("X-AnchorMailbox");
+                folder.Service.HttpHeaders.Add("X-AnchorMailbox", _pfXAnchorMailboxContent);
+                WriteToResults($"Set X-AnchorMailbox to {_pfXAnchorMailboxContent}");
 
-            folder.Service.HttpHeaders.Remove("X-PublicFolderMailbox");
-            folder.Service.HttpHeaders.Add("X-PublicFolderMailbox", _pfXAnchorMailboxContent);
-            WriteToResults($"Set X-PublicFolderMailbox to {_pfXAnchorMailboxContent}");
+                folder.Service.HttpHeaders.Remove("X-PublicFolderMailbox");
+                folder.Service.HttpHeaders.Add("X-PublicFolderMailbox", _pfXAnchorMailboxContent);
+                WriteToResults($"Set X-PublicFolderMailbox to {_pfXAnchorMailboxContent}");
+            }
+        }
+
+        private bool IsCatastrophicError(Exception ex)
+        {
+            //  Check for catastrophic errors
+            WriteToResults(ex.Message);
+            return true;
         }
 
         private void ReadItemsFromFolder(Folder folder)
         {
+            WriteToResults($"Starting folder read: {folder.DisplayName}");
             ItemView itemView = new ItemView(10, 0, OffsetBasePoint.Beginning);
+            itemView.PropertySet = BasePropertySet.IdOnly;
 
             if (checkBoxGetPublicFolders.Checked)
                 SetPublicFolderContentHeaders(folder);
-            FindItemsResults<Item> results = folder.FindItems(itemView);
-            foreach (var item in results.Items)
-                WriteToResults($"Item: {item.Subject}");
+            bool moreItems = true;
+
+            while (moreItems)
+            {
+                try
+                {
+                    FindItemsResults<Item> results = folder.FindItems(itemView);
+                    moreItems = results.MoreAvailable;
+                    itemView.Offset += results.Items.Count;
+
+                    foreach (var item in results.Items)
+                    {
+                        try
+                        {
+                            Item item1 = Item.Bind(folder.Service, item.Id, BasePropertySet.FirstClassProperties);
+                            WriteToResults($"Item: {item1.Subject}");
+                        }
+                        catch (Exception ex)
+                        {
+                            if (IsCatastrophicError(ex))
+                                break;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (IsCatastrophicError(ex))
+                        break;
+                }
+            }
+            WriteToResults($"Completed folder read: {folder.DisplayName}");
         }
 
         private void checkBoxGetPublicFolders_CheckedChanged(object sender, EventArgs e)
