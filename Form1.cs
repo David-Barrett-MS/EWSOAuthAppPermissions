@@ -76,6 +76,7 @@ namespace EWSOAuthAppPermissions
                     ewsClient.TraceListener = new TraceListener("trace.log");
                     ewsClient.TraceFlags = TraceFlags.All;
                     ewsClient.TraceEnabled = true;
+                    ewsClient.UserAgent = textBoxUserAgent.Text;
 
                     // Add OAuth authorization header to HttpClient
                     _oAuthHeader = $"Bearer {result.AccessToken}";
@@ -136,6 +137,7 @@ namespace EWSOAuthAppPermissions
             autodiscover.TraceListener = exchangeService.TraceListener;
             autodiscover.TraceFlags = TraceFlags.All;
             autodiscover.TraceEnabled = true;
+            autodiscover.UserAgent = textBoxUserAgent.Text;
             return autodiscover;
         }
 
@@ -411,6 +413,11 @@ namespace EWSOAuthAppPermissions
         private void checkBoxGetPublicFolders_CheckedChanged(object sender, EventArgs e)
         {
             textBoxAutoDiscoverPW.Enabled = checkBoxGetPublicFolders.Checked;
+        }
+
+        private void buttonClearLog_Click(object sender, EventArgs e)
+        {
+            textBoxResults.Clear();
         }
     }
 }
